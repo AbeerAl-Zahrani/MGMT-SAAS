@@ -1,0 +1,142 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Multi-tenant structure
+model Organization {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  subscription  Subscription?
+  members       Member[]
+  projects      Project[]
+  invitations   Invitation[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  avatar        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  memberships   Member[]
+  tasks         Task[]
+  comments      Comment[]
+  notifications Notification[]
+}
+
+model Member {
+  id             String       @id @default(cuid())
+  role           String       @default("MEMBER") // OWNER, ADMIN, MEMBER, VIEWER
+  userId         String
+  organizationId String
+  createdAt      DateTime     @default(now())
+  
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, organizationId])
+}
+
+model Invitation {
+  id             String       @id @default(cuid())
+  email          String
+  role           String       @default("MEMBER") // OWNER, ADMIN, MEMBER, VIEWER
+  token          String       @unique
+  organizationId String
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  organizationId       String   @unique
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  stripePriceId        String?
+  stripeCurrentPeriodEnd DateTime?
+  plan                 String   @default("FREE") // FREE, PRO, ENTERPRISE
+  status               String   @default("INACTIVE") // ACTIVE, INACTIVE, CANCELED, PAST_DUE
+  
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  status         String       @default("ACTIVE") // ACTIVE, COMPLETED, ARCHIVED
+  startDate      DateTime?
+  endDate        DateTime?
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks          Task[]
+  
+  @@index([organizationId])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      String       @default("TODO") // TODO, IN_PROGRESS, IN_REVIEW, DONE
+  priority    String       @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  dueDate     DateTime?
+  projectId   String
+  assignedToId String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo  User?        @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  comments    Comment[]
+  
+  @@index([projectId])
+  @@index([assignedToId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  taskId    String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([taskId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  type      String    // task_assigned, task_commented, task_completed
+  message   String
+  userId    String
+  taskId    String?
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
