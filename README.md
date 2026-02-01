@@ -123,15 +123,6 @@ This repository does not include a license file. Add one (e.g., `MIT`) if you pl
 
 ---
 
-If you want, I can also:
-
-- add a short Quick Start section with exact commands for macOS
-- create example `.env.example`
-- prepare a simple Vercel deployment guide
-
-Tell me which of those you'd like next.
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 ## Getting Started
 
 First, run the development server:
